@@ -22,8 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.bublik.exception.Utils.getStackTrace;
-import static org.bublik.util.ColumnUtil.fillCtidChunks;
-import static org.bublik.util.ColumnUtil.fillOraChunks;
+import static org.bublik.util.ColumnUtil.*;
 import static org.bublikcli.constants.StringConstant.HELP_MESSAGE;
 import static org.bublikcli.constants.StringConstant.MAPPING_FILE_CREATED;
 
@@ -104,16 +103,26 @@ public class App {
                             Config[].class));
             if (createChunkOption != null) {
                 int rowsParameter = Integer.parseInt(createChunkOption);
-                Connection connection = DriverManager.getConnection(properties.getFromProperty().getProperty("url"),
+                Connection fromConnection = DriverManager.getConnection(properties.getFromProperty().getProperty("url"),
                         properties.getFromProperty());
-                connection.setAutoCommit(false);
-                Driver driver = DriverManager.getDriver(properties.getFromProperty().getProperty("url"));
-                switch (driver.getClass().getName()) {
-                    case "oracle.jdbc.OracleDriver" -> fillOraChunks(config, connection, rowsParameter);
-                    case "org.postgresql.Driver" -> fillCtidChunks(config, connection, rowsParameter);
+                fromConnection.setAutoCommit(false);
+                Driver fromDriver = DriverManager.getDriver(properties.getFromProperty().getProperty("url"));
+                switch (fromDriver.getClass().getName()) {
+                    case "oracle.jdbc.OracleDriver" -> fillOraChunks(config, fromConnection, rowsParameter);
+                    case "org.postgresql.Driver" -> fillCtidChunks(config, fromConnection, rowsParameter);
                     default -> throw new RuntimeException();
                 }
-                connection.close();
+                fromConnection.close();
+
+                Driver toDriver = DriverManager.getDriver(properties.getToProperty().getProperty("url"));
+                if (toDriver.getClass().getName().equals("org.postgresql.Driver")) {
+                    Connection toConnection = DriverManager.getConnection(properties.getToProperty().getProperty("url"),
+                            properties.getToProperty());
+                    toConnection.setAutoCommit(false);
+                    createTableBublikChunk(toConnection);
+                    toConnection.close();
+                }
+
             }
             Bublik bublik = Bublik.getInstance(properties, config);
             bublik.start();

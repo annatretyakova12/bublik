@@ -12,6 +12,7 @@ public interface ChunkService {
 
     Chunk<?> setChunkStatus(ChunkStatus status, Integer errNum, String errMsg) throws SQLException;
     ResultSet getData(Connection connection, String query) throws SQLException;
+    void insertProcessedChunkInfo(Connection connection, int rows) throws SQLException;
 
     static void set(Chunk<?> chunk) {
         CHUNK_THREAD_LOCAL.set(chunk);

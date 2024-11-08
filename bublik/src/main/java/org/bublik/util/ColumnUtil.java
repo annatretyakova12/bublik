@@ -214,14 +214,28 @@ public class ColumnUtil {
         }
     }
 
-    private static void createTableCtidChunks(Connection initialConnection) {
+    private static void createTableCtidChunks(Connection connection) {
         try {
-            Statement createTable = initialConnection.createStatement();
-            createTable.executeUpdate(DDL_CREATE_POSTGRESQL_TABLE_CHUNKS);
+            Statement createTable = connection.createStatement();
+            createTable.executeUpdate(DDL_CREATE_POSTGRESQL_TABLE_CTID_CHUNKS);
             createTable.close();
-            Statement truncateTable = initialConnection.createStatement();
-            truncateTable.executeUpdate(DDL_TRUNCATE_POSTGRESQL_TABLE_CHUNKS);
+            Statement truncateTable = connection.createStatement();
+            truncateTable.executeUpdate(DDL_TRUNCATE_POSTGRESQL_TABLE_CTID_CHUNKS);
             truncateTable.close();
+        } catch (SQLException e) {
+            LOGGER.error("{}", getStackTrace(e));
+        }
+    }
+
+    public static void createTableBublikChunk(Connection connection) {
+        try {
+            Statement createTable = connection.createStatement();
+            createTable.executeUpdate(DDL_CREATE_POSTGRESQL_TABLE_BUBLIK_OUTBOX);
+            createTable.close();
+            Statement truncateTable = connection.createStatement();
+            truncateTable.executeUpdate(DDL_TRUNCATE_POSTGRESQL_TABLE_BUBLIK_OUTBOX);
+            truncateTable.close();
+            connection.commit();
         } catch (SQLException e) {
             LOGGER.error("{}", getStackTrace(e));
         }

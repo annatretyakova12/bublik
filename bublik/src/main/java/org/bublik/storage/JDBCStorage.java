@@ -38,13 +38,15 @@ public abstract class JDBCStorage extends Storage {
         this.threadCount = connectionProperty.getThreadCount();
     }
 
+/*
     public DataSource getSource() {
         return dataSource;
     }
+*/
 
     @Override
     public Connection getConnection() throws SQLException {
-        return getSource().getConnection();
+        return dataSource.getConnection();
     }
 
     private HikariConfig buildConfiguration(Properties property, ConnectionProperty connectionProperty) {
@@ -53,7 +55,10 @@ public abstract class JDBCStorage extends Storage {
         hikariConfig.setUsername(property.getProperty("user"));
         hikariConfig.setPassword(property.getProperty("password"));
         hikariConfig.setMaximumPoolSize(connectionProperty.getThreadCount() + 1);
-        hikariConfig.setConnectionTimeout(3000);
+        hikariConfig.setConnectionTimeout(5000);
+//        hikariConfig.setKeepaliveTime(30000);
+//        hikariConfig.setValidationTimeout(250);
+//        hikariConfig.setLeakDetectionThreshold(2000);
         hikariConfig.setAutoCommit(false);
         hikariConfig.setPoolName(getIsSource() ? "HikariPool-Source" : "HikariPool-Target");
         return hikariConfig;
@@ -91,10 +96,15 @@ public abstract class JDBCStorage extends Storage {
                         assert targetStorage != null;
                         return c;
                     } catch (Exception e) {
-                        LOGGER.error("{}", getStackTrace(e));
-                        chunk.getSourceConnection().rollback();
-                        chunk.setChunkStatus(ChunkStatus.PROCESSED_WITH_ERROR, null, getStackTrace(e));
+                        LOGGER.error("ChunkId = {} {}.{} {}", chunk.getId(), chunk.getTargetTable().getSchemaName(), chunk.getTargetTable().getTableName(), getStackTrace(e));
+                        try {
+                            chunk.getSourceConnection().rollback();
+                            chunk.setChunkStatus(ChunkStatus.PROCESSED_WITH_ERROR, null, getStackTrace(e));
+                        } catch (SQLException exception) {
+                            LOGGER.error("{}", getStackTrace(e));
+                        }
                         assert targetStorage != null;
+                        chunk.closeChunkSourceConnection();
                         targetStorage.closeStorage();
                         throw e;
                     }

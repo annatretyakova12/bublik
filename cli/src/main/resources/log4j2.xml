@@ -16,6 +16,7 @@
             <AppenderRef ref="Console"/>
 <!--            <AppenderRef ref="Console" level="error"/>-->
         </Root>
+<!--        <Logger name="com.zaxxer.hikari"/>-->
         <Logger name="com.zaxxer.hikari" level="error"/>
         <Logger name="com.datastax.driver.core" level="error"/>
         <Logger name="io.netty.channel.nio" level="error"/>
