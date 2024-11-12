@@ -111,6 +111,7 @@ public class ColumnUtil {
                 CallableStatement createTask =
                         connection.prepareCall(PLSQL_CREATE_TASK);
                 createTask.setString(1, config.fromTaskName());
+                LOGGER.info("Creating tasks... {} {}", PLSQL_CREATE_TASK, config.fromTaskName());
                 createTask.execute();
                 createTask.close();
             }

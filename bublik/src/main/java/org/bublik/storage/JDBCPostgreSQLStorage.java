@@ -116,6 +116,8 @@ public class JDBCPostgreSQLStorage extends JDBCStorage implements JDBCStorageSer
         ResultSet fetchResultSet = chunk.getResultSet();
         if (fetchResultSet.next()) {
             Connection connectionTo;
+            connectionTo = getConnection();
+/*
             while (true) {
                 try {
                     connectionTo = getConnection();
@@ -129,6 +131,7 @@ public class JDBCPostgreSQLStorage extends JDBCStorage implements JDBCStorageSer
                     }
                 }
             }
+*/
             Table table = TableService.getTable(connectionTo, chunk.getConfig().toSchemaName(), chunk.getConfig().toTableName());
 //            System.out.println(table.exists(connectionTo));
             if (table.exists(connectionTo)) {
@@ -142,10 +145,13 @@ public class JDBCPostgreSQLStorage extends JDBCStorage implements JDBCStorageSer
                     connectionTo.close();
                     throw e;
                 } catch (BinaryWriteFailedException b) {
-                    PGConnection pgConnection = PostgreSqlUtils.getPGConnection(connectionTo);
-                    pgConnection.cancelQuery();
-                    LOGGER.error("BinaryWriteFailedException caught by transferToTarget() {}", getStackTrace(b));
+//                    PGConnection pgConnection = PostgreSqlUtils.getPGConnection(connectionTo);
+//                    pgConnection.cancelQuery();
+//                    LOGGER.error("BinaryWriteFailedException caught by transferToTarget() {}", getStackTrace(b));
 //                    connectionTo.abort( null);
+                    if (b.getCause() instanceof PSQLException && b.getCause().getCause() == null) {
+                        connectionTo.close();
+                    }
                     throw b;
                 } finally {
                     ;
@@ -181,7 +187,7 @@ public class JDBCPostgreSQLStorage extends JDBCStorage implements JDBCStorageSer
                     0,
                     chunk.getStartTime(),
                     System.currentTimeMillis(),
-                    "The chunk's already been copied",
+                    "The chunk has already been copied",
                     chunk);
         }
 
@@ -241,7 +247,7 @@ public class JDBCPostgreSQLStorage extends JDBCStorage implements JDBCStorageSer
         try {
             writer.close();
         } catch (BinaryWriteFailedException b) {
-            LOGGER.error("Can't close stream. {}", getStackTrace(b));
+//            LOGGER.error("Can't close stream. {}", getStackTrace(b));
             throw b;
         }
 
@@ -828,8 +834,8 @@ public class JDBCPostgreSQLStorage extends JDBCStorage implements JDBCStorageSer
                             try {
                                 uuid = UUID.fromString((String) o);
                             } catch (Exception e1) {
-                                e1.printStackTrace();
-                                System.out.println(targetColumn + " : " + o);
+                                LOGGER.error("{}.{} : {} {} {}", chunk.getTargetTable().getSchemaName(),
+                                        chunk.getTargetTable().getTableName(), targetColumn, o, getStackTrace(e1));
                             }
                         }
                         row.setUUID(targetColumn, uuid);

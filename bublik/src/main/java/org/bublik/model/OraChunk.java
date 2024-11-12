@@ -2,7 +2,10 @@ package org.bublik.model;
 
 import org.bublik.constants.ChunkStatus;
 import org.bublik.constants.PGKeywords;
+import org.bublik.storage.JDBCStorage;
 import org.bublik.storage.Storage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -10,8 +13,11 @@ import java.util.List;
 import java.util.Map;
 
 import static org.bublik.constants.SQLConstants.*;
+import static org.bublik.exception.Utils.getStackTrace;
 
 public class OraChunk<T extends RowId> extends Chunk<T> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(OraChunk.class);
+
     public OraChunk(Integer id, T start, T end, Config config, Table sourceTable, String fetchQuery, Storage sourceStorage) {
         super(id, start, end, config, sourceTable, fetchQuery, sourceStorage);
     }

@@ -30,6 +30,23 @@ create table "TABLE2" (
     "CaseSensitive" varchar(20),
     tstzrange tstzrange
 );
+create table table3 (
+    id bigint,
+    create_at timestamp(6) with time zone,
+    level character varying(255),
+    update_at timestamp(6) with time zone,
+    gender boolean,
+    byteablob bytea,
+    textclob text,
+    "CaseSensitive" varchar(20),
+    country_name varchar(256) not null,
+    rawbytea bytea,
+    doc jsonb,
+    uuid uuid,
+    clobjsonb jsonb,
+    current_mood mood,
+    currency_name varchar(256)
+);
 create table "Source" (
     id int primary key generated always as identity,
     uuid uuid,

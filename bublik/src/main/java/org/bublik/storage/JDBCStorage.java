@@ -55,7 +55,7 @@ public abstract class JDBCStorage extends Storage {
         hikariConfig.setUsername(property.getProperty("user"));
         hikariConfig.setPassword(property.getProperty("password"));
         hikariConfig.setMaximumPoolSize(connectionProperty.getThreadCount() + 1);
-        hikariConfig.setConnectionTimeout(5000);
+        hikariConfig.setConnectionTimeout(10000);
 //        hikariConfig.setKeepaliveTime(30000);
 //        hikariConfig.setValidationTimeout(250);
 //        hikariConfig.setLeakDetectionThreshold(2000);
@@ -96,7 +96,7 @@ public abstract class JDBCStorage extends Storage {
                         assert targetStorage != null;
                         return c;
                     } catch (Exception e) {
-                        LOGGER.error("ChunkId = {} {}.{} {}", chunk.getId(), chunk.getTargetTable().getSchemaName(), chunk.getTargetTable().getTableName(), getStackTrace(e));
+                        LOGGER.error("ChunkId = {} {}.{} {}", chunk.getId(), chunk.getSourceTable().getSchemaName(), chunk.getSourceTable().getTableName(), getStackTrace(e));
                         try {
                             chunk.getSourceConnection().rollback();
                             chunk.setChunkStatus(ChunkStatus.PROCESSED_WITH_ERROR, null, getStackTrace(e));

@@ -113,7 +113,7 @@ public abstract class Chunk<T> implements ChunkService {
         return fetchQuery;
     }
 
-    public Chunk<?> assignSourceConnection() {
+    public Chunk<?> assignSourceConnection() throws SQLException {
         while (true) {
             try {
                 Connection sourceConnection = getSourceStorage().getConnection();
@@ -125,6 +125,7 @@ public abstract class Chunk<T> implements ChunkService {
         }
     }
 
+    @Override
     public Chunk<?> assignSourceResultSet() throws SQLException {
         setStartTime(System.currentTimeMillis());
         ResultSet resultSet = getData(getSourceConnection(), getFetchQuery());
