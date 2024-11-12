@@ -98,8 +98,10 @@ public abstract class JDBCStorage extends Storage {
                     } catch (Exception e) {
                         LOGGER.error("ChunkId = {} {}.{} {}", chunk.getId(), chunk.getSourceTable().getSchemaName(), chunk.getSourceTable().getTableName(), getStackTrace(e));
                         try {
-                            chunk.getSourceConnection().rollback();
-                            chunk.setChunkStatus(ChunkStatus.PROCESSED_WITH_ERROR, null, getStackTrace(e));
+                            if (chunk.getSourceConnection().isValid(0)) {
+                                chunk.getSourceConnection().rollback();
+                                chunk.setChunkStatus(ChunkStatus.PROCESSED_WITH_ERROR, null, getStackTrace(e));
+                            }
                         } catch (SQLException exception) {
                             LOGGER.error("{}", getStackTrace(e));
                         }

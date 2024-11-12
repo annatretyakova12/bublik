@@ -114,24 +114,9 @@ public class JDBCPostgreSQLStorage extends JDBCStorage implements JDBCStorageSer
     @Override
     public LogMessage transferToTarget(Chunk<?> chunk) throws SQLException, BinaryWriteFailedException {
         ResultSet fetchResultSet = chunk.getResultSet();
+        Connection connectionFrom = chunk.getSourceConnection();
         if (fetchResultSet.next()) {
-            Connection connectionTo;
-            connectionTo = getConnection();
-/*
-            while (true) {
-                try {
-                    connectionTo = getConnection();
-                    break;
-                } catch (SQLException e) {
-                    LOGGER.warn("There are no available connections in target pool ... {}", e.getMessage());
-                    try {
-                        Thread.sleep(10000);
-                    } catch (InterruptedException ignored) {
-                        ;
-                    }
-                }
-            }
-*/
+            Connection connectionTo = getConnection();
             Table table = TableService.getTable(connectionTo, chunk.getConfig().toSchemaName(), chunk.getConfig().toTableName());
 //            System.out.println(table.exists(connectionTo));
             if (table.exists(connectionTo)) {
@@ -141,6 +126,8 @@ public class JDBCPostgreSQLStorage extends JDBCStorage implements JDBCStorageSer
                     connectionTo.close();
                     return logMessage;
                 } catch (SQLException e) {
+                    connectionFrom.rollback();
+                    connectionFrom.close();
                     connectionTo.rollback();
                     connectionTo.close();
                     throw e;
@@ -152,6 +139,8 @@ public class JDBCPostgreSQLStorage extends JDBCStorage implements JDBCStorageSer
                     if (b.getCause() instanceof PSQLException && b.getCause().getCause() == null) {
                         connectionTo.close();
                     }
+                    connectionFrom.rollback();
+                    connectionFrom.close();
                     throw b;
                 } finally {
                     ;
