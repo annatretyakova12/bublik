@@ -20,8 +20,10 @@ public abstract class Chunk<T> implements ChunkService {
     private final String fetchQuery;
     private Table targetTable;
     private final Storage sourceStorage;
+    private long startTime;
     private Storage targetStorage;
     private Connection sourceConnection;
+    private Connection targetConnection;
     private LogMessage logMessage;
     private ResultSet resultSet;
 
@@ -68,6 +70,14 @@ public abstract class Chunk<T> implements ChunkService {
         this.targetTable = table;
     }
 
+    public long getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
+
     public Storage getTargetStorage() {
         return targetStorage;
     }
@@ -78,6 +88,14 @@ public abstract class Chunk<T> implements ChunkService {
 
     public void setSourceConnection(Connection sourceConnection) {
         this.sourceConnection = sourceConnection;
+    }
+
+    public Connection getTargetConnection() {
+        return targetConnection;
+    }
+
+    public void setTargetConnection(Connection targetConnection) {
+        this.targetConnection = targetConnection;
     }
 
     public LogMessage getLogMessage() {
@@ -105,14 +123,20 @@ public abstract class Chunk<T> implements ChunkService {
     }
 
     public Chunk<?> assignSourceConnection() throws SQLException {
-        Connection sourceConnection = getSourceStorage().getConnection();
-        setSourceConnection(sourceConnection);
-        return this;
+        while (true) {
+            try {
+                Connection sourceConnection = getSourceStorage().getConnection();
+                setSourceConnection(sourceConnection);
+                return this;
+            } catch (SQLException e) {
+                LOGGER.error("There are no available connections in source pool ...");
+            }
+        }
     }
 
+    @Override
     public Chunk<?> assignSourceResultSet() throws SQLException {
-//        String q = buildFetchStatement();
-//        LOGGER.debug("{}", q);
+        setStartTime(System.currentTimeMillis());
         ResultSet resultSet = getData(getSourceConnection(), getFetchQuery());
         setResultSet(resultSet);
         return this;
@@ -126,7 +150,6 @@ public abstract class Chunk<T> implements ChunkService {
             resultSet.close();
             return this;
         } catch (SQLException | RuntimeException e) {
-//            LOGGER.error("{}", getStackTrace(e));
             this.setLogMessage(new LogMessage (0, 0, 0, " UNREACHABLE TASK ", this));
             throw e;
         }
@@ -134,7 +157,11 @@ public abstract class Chunk<T> implements ChunkService {
 
     public Chunk<?> closeChunkSourceConnection() throws SQLException {
         Connection connection = getSourceConnection();
-        connection.close();
+        if (connection.isValid(0)) {
+            connection.close();
+        } else {
+            throw new RuntimeException();
+        }
         return this;
     }
 }

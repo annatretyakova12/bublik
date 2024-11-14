@@ -267,15 +267,15 @@ Chunks can be created automatically with parameter -k at startup
 
 ```
 java \
-  -jar ./cli/target/bublik-cli-1.2.0.jar \
+  -jar ./cli/target/bublik-cli-1.2.1.jar \
   -k 200000 \
   -c ./cli/config/ora2pg.yaml \
   -m ./cli/config/ora2pg.json
 ```
 
 > [!NOTE]
-> If the migration was interrupted due to any infrastructure issues you can resume the process without -k parameter
-> In this case unprocessed chunks of data will transfer 
+> If the migration was interrupted due to any infrastructure issues you can resume the process without -k parameter.
+> In this case unprocessed chunks of data will be transfer 
 
 
 You can prepare data chunks in Oracle manually by using the same user credentials specified in key `fromProperties` in `./cli/config/ora2pg.yaml`:
@@ -583,11 +583,11 @@ Run the cli:
 
 - Oracle:
   > ```
-  > java -jar ./target/bublik-cli-1.2.0.jar -c ./config/ora2pg.yaml -m ./config/ora2pg.json
+  > java -jar ./target/bublik-cli-1.2.1.jar -c ./config/ora2pg.yaml -m ./config/ora2pg.json
   > ```
 - PostgreSQL
   > ```
-  > java -jar ./target/bublik-cli-1.2.0.jar -c ./config/pg2pg.yaml -m ./config/pg2pg.json
+  > java -jar ./target/bublik-cli-1.2.1.jar -c ./config/pg2pg.yaml -m ./config/pg2pg.json
   > ```
 
 - To prevent heap pressure, use `-Xmx16g`
@@ -617,7 +617,7 @@ Halt any changes to the movable tables in the source database
 Run the service:
 
 ```
-java -jar ./build/libs/service-1.2.0.jar
+java -jar ./build/libs/service-1.2.1.jar
 ```
 
 Consume the service:

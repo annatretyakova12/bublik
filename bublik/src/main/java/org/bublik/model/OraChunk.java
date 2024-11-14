@@ -2,17 +2,22 @@ package org.bublik.model;
 
 import org.bublik.constants.ChunkStatus;
 import org.bublik.constants.PGKeywords;
+import org.bublik.storage.JDBCStorage;
 import org.bublik.storage.Storage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static org.bublik.constants.SQLConstants.PLSQL_UPDATE_STATUS_ROWID_CHUNKS;
-import static org.bublik.constants.SQLConstants.PLSQL_UPDATE_STATUS_ROWID_CHUNKS_WITH_ERRORS;
+import static org.bublik.constants.SQLConstants.*;
+import static org.bublik.exception.Utils.getStackTrace;
 
 public class OraChunk<T extends RowId> extends Chunk<T> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(OraChunk.class);
+
     public OraChunk(Integer id, T start, T end, Config config, Table sourceTable, String fetchQuery, Storage sourceStorage) {
         super(id, start, end, config, sourceTable, fetchQuery, sourceStorage);
     }
@@ -52,5 +57,19 @@ public class OraChunk<T extends RowId> extends Chunk<T> {
         statement.setRowId(2, this.getEnd());
         statement.setFetchSize(10000);
         return statement.executeQuery();
+    }
+
+    @Override
+    public void insertProcessedChunkInfo(Connection connection, int rows) throws SQLException {
+        PreparedStatement chunkInsert = connection.prepareStatement(DML_INSERT_BUBLIK_OUTBOX_ROWID);
+        chunkInsert.setLong(1, getId());
+        chunkInsert.setString(2, String.valueOf(getStart()));
+        chunkInsert.setString(3, String.valueOf(getEnd()));
+        chunkInsert.setLong(4, rows);
+        chunkInsert.setString(5, getConfig().fromTaskName());
+        chunkInsert.setString(6, getTargetTable().getSchemaName().toLowerCase());
+        chunkInsert.setString(7, getTargetTable().getFinalTableName(false));
+        long r = chunkInsert.executeUpdate();
+        chunkInsert.close();
     }
 }

@@ -6,7 +6,7 @@
 
     <groupId>org.bublik</groupId>
     <artifactId>bublik</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -20,19 +20,19 @@
     </properties>
 
     <dependencies>
-<!--
-        <dependency>
-            <groupId>ru.tinkoff.apsv.apsv-encryption-manager</groupId>
-            <artifactId>encryption-core</artifactId>
-            <version>3.1.0-RELEASE</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.module</groupId>
-                    <artifactId>jackson-modules-java8</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
--->
+        <!--
+                <dependency>
+                    <groupId>ru.tinkoff.apsv.apsv-encryption-manager</groupId>
+                    <artifactId>encryption-core</artifactId>
+                    <version>3.1.0-RELEASE</version>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>com.fasterxml.jackson.module</groupId>
+                            <artifactId>jackson-modules-java8</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+        -->
 <!--
         <dependency>
             <groupId>ru.tinkoff.apsv.apsv-encryption-manager</groupId>
