@@ -2,6 +2,7 @@ package org.bublik.storage;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.pool.HikariPool;
 import org.bublik.constants.ChunkStatus;
 import org.bublik.model.Chunk;
 import org.bublik.model.Config;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.SQLTransientConnectionException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +48,13 @@ public abstract class JDBCStorage extends Storage {
 
     @Override
     public Connection getConnection() throws SQLException {
-        return dataSource.getConnection();
+//        HikariDataSource hikariDataSource = dataSource.unwrap(HikariDataSource.class);
+        try {
+            return dataSource.getConnection();
+        } catch (SQLTransientConnectionException e) {
+//            LOGGER.error("{}", getStackTrace(e));
+            throw e;
+        }
     }
 
     private HikariConfig buildConfiguration(Properties property, ConnectionProperty connectionProperty) {
@@ -93,20 +101,22 @@ public abstract class JDBCStorage extends Storage {
                                 .closeChunkSourceConnection();
                         LogMessage logMessage = c.getLogMessage();
                         logMessage.loggerChunkInfo();
+                        if (chunk.getSourceConnection().isValid(0)) {
+                            chunk.getSourceConnection().close();
+                        }
                         assert targetStorage != null;
                         return c;
                     } catch (Exception e) {
                         LOGGER.error("ChunkId = {} {}.{} {}", chunk.getId(), chunk.getSourceTable().getSchemaName(), chunk.getSourceTable().getTableName(), getStackTrace(e));
                         try {
                             if (chunk.getSourceConnection().isValid(0)) {
-                                chunk.getSourceConnection().rollback();
                                 chunk.setChunkStatus(ChunkStatus.PROCESSED_WITH_ERROR, null, getStackTrace(e));
+                                chunk.getSourceConnection().close();
                             }
                         } catch (SQLException exception) {
-                            LOGGER.error("{}", getStackTrace(e));
+                            LOGGER.error("{}", getStackTrace(exception));
                         }
                         assert targetStorage != null;
-                        chunk.closeChunkSourceConnection();
                         targetStorage.closeStorage();
                         throw e;
                     }

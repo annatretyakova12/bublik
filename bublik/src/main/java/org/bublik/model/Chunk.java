@@ -23,6 +23,7 @@ public abstract class Chunk<T> implements ChunkService {
     private long startTime;
     private Storage targetStorage;
     private Connection sourceConnection;
+    private Connection targetConnection;
     private LogMessage logMessage;
     private ResultSet resultSet;
 
@@ -87,6 +88,14 @@ public abstract class Chunk<T> implements ChunkService {
 
     public void setSourceConnection(Connection sourceConnection) {
         this.sourceConnection = sourceConnection;
+    }
+
+    public Connection getTargetConnection() {
+        return targetConnection;
+    }
+
+    public void setTargetConnection(Connection targetConnection) {
+        this.targetConnection = targetConnection;
     }
 
     public LogMessage getLogMessage() {

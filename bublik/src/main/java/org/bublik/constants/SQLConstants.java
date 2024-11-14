@@ -74,7 +74,7 @@ public abstract class SQLConstants {
     public static final String PLSQL_UPDATE_STATUS_ROWID_CHUNKS_WITH_ERRORS =
             "CALL DBMS_PARALLEL_EXECUTE.SET_CHUNK_STATUS(task_name => ?,chunk_id => ?,status => ?,err_msg => ?)";
     public static final String PLSQL_UPDATE_STATUS_CTID_CHUNKS =
-            "update public.ctid_chunks set status = ? where chunk_id = ? and task_name = ?";
+            "update public.ctid_chunks set status = ?, err_msg = null where chunk_id = ? and task_name = ?";
     public static final String DML_UPDATE_STATUS_CTID_CHUNKS_WITH_ERRORS =
             "update public.ctid_chunks set status = ?, err_msg = ? where chunk_id = ? and task_name = ?";
 }

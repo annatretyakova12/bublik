@@ -10,7 +10,9 @@ import de.bytefish.pgbulkinsert.util.PostgreSqlUtils;
 import oracle.sql.INTERVALDS;
 import oracle.sql.INTERVALYM;
 import org.bublik.constants.PGKeywords;
+import org.bublik.exception.SourceSQLException;
 import org.bublik.exception.TableNotExistsException;
+import org.bublik.exception.TargetSQLException;
 import org.bublik.model.*;
 import org.bublik.service.JDBCStorageService;
 import org.bublik.service.TableService;
@@ -112,11 +114,18 @@ public class JDBCPostgreSQLStorage extends JDBCStorage implements JDBCStorageSer
     }
 
     @Override
-    public LogMessage transferToTarget(Chunk<?> chunk) throws SQLException, BinaryWriteFailedException {
+    public LogMessage transferToTarget(Chunk<?> chunk) throws SQLException, BinaryWriteFailedException,
+            SourceSQLException, TargetSQLException {
         ResultSet fetchResultSet = chunk.getResultSet();
         Connection connectionFrom = chunk.getSourceConnection();
         if (fetchResultSet.next()) {
-            Connection connectionTo = getConnection();
+            Connection connectionTo;
+            try {
+                connectionTo = getConnection();
+            } catch (SQLTransientConnectionException t) {
+                throw new TargetSQLException(getStackTrace(t));
+            }
+            chunk.setTargetConnection(connectionTo);
             Table table = TableService.getTable(connectionTo, chunk.getConfig().toSchemaName(), chunk.getConfig().toTableName());
 //            System.out.println(table.exists(connectionTo));
             if (table.exists(connectionTo)) {
@@ -126,21 +135,18 @@ public class JDBCPostgreSQLStorage extends JDBCStorage implements JDBCStorageSer
                     connectionTo.close();
                     return logMessage;
                 } catch (SQLException e) {
-                    connectionFrom.rollback();
-                    connectionFrom.close();
+                    LOGGER.error("{}", getStackTrace(e));
                     connectionTo.rollback();
                     connectionTo.close();
                     throw e;
+                } catch (SourceSQLException s) {
+                    connectionFrom.close();
+                    LOGGER.error("{}", getStackTrace(s));
+                    throw s;
                 } catch (BinaryWriteFailedException b) {
-//                    PGConnection pgConnection = PostgreSqlUtils.getPGConnection(connectionTo);
-//                    pgConnection.cancelQuery();
-//                    LOGGER.error("BinaryWriteFailedException caught by transferToTarget() {}", getStackTrace(b));
-//                    connectionTo.abort( null);
                     if (b.getCause() instanceof PSQLException && b.getCause().getCause() == null) {
                         connectionTo.close();
                     }
-                    connectionFrom.rollback();
-                    connectionFrom.close();
                     throw b;
                 } finally {
                     ;
@@ -164,7 +170,7 @@ public class JDBCPostgreSQLStorage extends JDBCStorage implements JDBCStorageSer
 
     private LogMessage fetchAndCopy(Connection connectionTo,
                                     ResultSet fetchResultSet,
-                                    Chunk<?> chunk) throws SQLException, BinaryWriteFailedException {
+                                    Chunk<?> chunk) throws SQLException, BinaryWriteFailedException, SourceSQLException{
         int recordCount = 0;
 
         try {
@@ -231,7 +237,8 @@ public class JDBCPostgreSQLStorage extends JDBCStorage implements JDBCStorageSer
                 throw e;
             }
             recordCount++;
-        } while (fetchResultSet.next());
+        } while (hasNext(fetchResultSet));
+//        } while (fetchResultSet.next());
 
         try {
             writer.close();
@@ -249,6 +256,15 @@ public class JDBCPostgreSQLStorage extends JDBCStorage implements JDBCStorageSer
                 System.currentTimeMillis(),
                 "PostgreSQL COPY",
                 chunk);
+    }
+
+    private boolean hasNext(ResultSet resultSet) throws SourceSQLException {
+        try {
+            return resultSet.next();
+        } catch (SQLException e) {
+//            LOGGER.error("{}", getStackTrace(e));
+            throw new SourceSQLException(getStackTrace(e));
+        }
     }
 
     protected Map<String, PGColumn> readTargetColumnsAndTypes(Connection connectionTo, Chunk<?> chunk) {
