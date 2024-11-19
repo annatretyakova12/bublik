@@ -1,33 +1,37 @@
 ![Bublik](/sql/bublik.png)
+
 # Tool for Data Transfer from Oracle to PostgreSQL or from PostgreSQL to PostgreSQL
 
-This tool facilitates the efficient transfer of data from Oracle to PostgreSQL or from PostgreSQL to PostgreSQL.<br>
-The quickest method for extracting data from Oracle is by using `ROWID` (employing `dbms_parallel_execute` to segment the data into chunks). 
-In case of PostgreSQL, we should split a table into chunks by `CTID`.<br>
-As you know, the fastest way to input data into PostgreSQL is through the `COPY` command in binary format.
+Using this tool, you can efficiently transfer data from Oracle to PostgreSQL or from PostgreSQL to PostgreSQL.
+
+The quickest way to extract data from Oracle is using `ROWID`—employing `dbms_parallel_execute` to segment the data into chunks. 
+In case of PostgreSQL, we should split a table into chunks by `CTID`.
+
+The fastest way to input data into PostgreSQL is using the `COPY` command in binary format.
 
 * [Oracle To PostgreSQL](#Oracle-To-PostgreSQL)
-  * [Prepare Oracle To PostgreSQL environment](#Prepare-Oracle-To-PostgreSQL-environment)
-  * [Prepare Oracle To PostgreSQL Config File](#Prepare-Oracle-To-PostgreSQL-Config-File)
-  * [Prepare Oracle To PostgreSQL Mapping File](#Prepare-Oracle-To-PostgreSQL-Mapping-File)
-  * [Create Oracle ROWID chunks and Run](#Create-Oracle-ROWID-chunks-and-Run)
+  * [Environment](#Environment)
+  * [Config File](#Config-File)
+  * [Mapping File](#Mapping-File)
+  * [Create Oracle ROWID Chunks and Run](#Chunks-and-Run)
 * [PostgreSQL To PostgreSQL](#PostgreSQL-To-PostgreSQL)
-  * [Prepare PostgreSQL To PostgreSQL environment](#Prepare-PostgreSQL-To-PostgreSQL-environment)
-  * [Prepare PostgreSQL To PostgreSQL Config File](#Prepare-PostgreSQL-To-PostgreSQL-Config-File)
-  * [Prepare PostgreSQL To PostgreSQL Mapping File](#Prepare-PostgreSQL-To-PostgreSQL-Mapping-File)
-  * [Create PostgreSQL CTID chunks](#Create-PostgreSQL-CTID-chunks)
+  * [Environment](#Environment-1)
+  * [Config File](#Config-File-1)
+  * [Mapping File](#Mapping-File-1)
+  * [Create PostgreSQL CTID Chunks](#Create-PostgreSQL-CTID-Chunks)
 * [PostgreSQL To Cassandra](#PostgreSQL-To-Cassandra)
-  * [Prepare PostgreSQL To Cassandra environment](#Prepare-PostgreSQL-To-Cassandra-environment)
+  * [Environment](#Environment-2)
 * [Usage](#Usage)
-  * [Usage as a cli](#Usage-as-a-cli)
-  * [Usage as a service](#Usage-as-a-service)
+  * [As a Cli](#As-a-Cli)
+  * [As a Service](#As-a-Service)
 
 ## Oracle To PostgreSQL
+
 ![Oracle To PostgreSQL](/sql/oracletopostgresql.png)
 
-The objective is to migrate tables <strong>TABLE1</strong>, <strong>Table2</strong>, <strong>PARTED</strong> from Oracle schema <strong>TEST</strong> to a PostgreSQL database.
+The goal is to migrate <strong>TABLE1</strong>, <strong>Table2</strong>, and <strong>PARTED</strong> tables from Oracle <strong>TEST<strong> schema to a PostgreSQL database.
 
-**Supported types:**
+**Supported types**
 
 | ORACLE                   | Postgresql (possible types)                          |
 |:-------------------------|:-----------------------------------------------------|
@@ -45,55 +49,60 @@ The objective is to migrate tables <strong>TABLE1</strong>, <strong>Table2</stro
 
 [Java Datatype Mappings](https://docs.oracle.com/en/database/oracle/oracle-database/23/jjdbc/accessing-and-manipulating-Oracle-data.html#GUID-1AF80C90-DFE6-4A3E-A407-52E805726778)
 
-### Prepare Oracle To PostgreSQL environment
+### Environment
 
-All activities are reproducible in docker containers
+Use docker containers for all steps.
 
 ```
 git clone https://github.com/dimarudik/bublik.git
 cd bublik/
 ```
 
-
 ```
 mvn -f bublik/pom.xml clean install -DskipTests
 mvn -f cli/pom.xml clean package -DskipTests
 ```
 
-#### Prepare Oracle environment
+#### Prepare Oracle Environment
 
-- arm64:
+<details><summary>arm64</summary>
 
-  > ```
-  > docker run --name oracle \
-  > -p 1521:1521 -p 5500:5500 \
-  >     -e ORACLE_PWD=oracle_4U \
-  >     -v ./dockerfiles/scripts:/docker-entrypoint-initdb.d \
-  >     -d dimarudik/oracle_arm64:19.3.0-ee
-  > ```
+```
+docker run --name oracle \
+-p 1521:1521 -p 5500:5500 \
+   -e ORACLE_PWD=oracle_4U \
+   -v ./dockerfiles/scripts:/docker-entrypoint-initdb.d \
+   -d dimarudik/oracle_arm64:19.3.0-ee
+```
 
-- x86_64:
+</details>
 
-  > ```
-  > docker run --name oracle \
-  >     -p 1521:1521 -p 5500:5500 \
-  >     -e ORACLE_PWD=oracle_4U \
-  >     -v ./dockerfiles/scripts:/docker-entrypoint-initdb.d \
-  >     -d dimarudik/oracle_x86_64:19.3.0-ee
-  > ```
+<details><summary>x86_64</summary>
+
+```
+docker run --name oracle \
+-p 1521:1521 -p 5500:5500 \
+   -e ORACLE_PWD=oracle_4U \
+   -v ./dockerfiles/scripts:/docker-entrypoint-initdb.d \
+   -d dimarudik/oracle_x86_64:19.3.0-ee
+```
+
+</details>
   
->  **WARNING**: Tables `TABLE1`, `Table2`, `PARTED` will be created and fulfilled during oracle docker container startup
+> [!NOTE] 
+> `TABLE1`, `Table2`, and `PARTED` tables will be created and fulfilled during Oracle docker container startup.
 
-How to connect to Oracle:
+To connect to Oracle, use a command:
 
 ```
 sqlplus 'test/test@(description=(address=(host=localhost)(protocol=tcp)(port=1521))(connect_data=(service_name=ORCLPDB1)))'
 ```
 
-> [!NOTE]
-> [How to install Oracle Instant Client](https://www.oracle.com/database/technologies/instant-client.html)
+[How to install Oracle Instant Client](https://www.oracle.com/database/technologies/instant-client.html)
 
-#### Prepare PostgreSQL environment
+#### Prepare PostgreSQL Environment
+
+<details><summary>Query</summary>
 
 ```
 docker run --name postgres \
@@ -117,18 +126,20 @@ docker run --name postgres \
         -c auto_explain.log_min_duration=0 \
         -c auto_explain.log_analyze=true
 ```
+</details>
 
->  **WARNING**: Tables `public.table1`, `public.table2`, `public.parted` will be created during postgre docker container startup
+> [!NOTE] 
+> Tables `public.table1`, `public.table2`, `public.parted` will be created during Postgre docker container startup.
 
-How to connect to PostgreSQL:
+To connect to PostgreSQL, use a command:
 
 ```
 psql postgresql://test:test@localhost/postgres
 ```
 
-### Prepare Oracle To PostgreSQL Config File
+### Config File
 
-##### ./cli/config/ora2pg.yaml
+<details><summary>./cli/config/ora2pg.yaml</summary>
 
 ```yaml
 threadCount: 10
@@ -143,10 +154,12 @@ toProperties:
   password: test
 ```
 
+</details>
 
-### Prepare Oracle To PostgreSQL Mapping File
 
-##### ./cli/config/ora2pg.json
+### Mapping File
+
+<details><summary>./cli/config/ora2pg.json</summary>
 
 ```json
 [
@@ -221,49 +234,50 @@ toProperties:
 ]
 ```
 
+</details>
+
 > [!IMPORTANT]
-> The case-sensitive or reserved words must be quoted with double quotation and backslashes  
+> The case-sensitive or reserved words must be quoted with double quotation and backslashes.  
 
 > [!NOTE]
-> To enrich data from other tables you can use combination of <br>
-> **fromTableAlias**, **fromTableAdds** and **expressionToColumn** definitions <br> 
-> In example with TABLE1 the data will be retrieved by query:
+> To enrich data from other tables, you can use combination of **fromTableAlias**, **fromTableAdds**, and **expressionToColumn** definitions.
 
- > ```
- > SELECT /* bublik */ /*+ no_index(T) */
- >   "LEVEL",
- >   create_at,
- >   update_at,
- >   gender,
- >   byteablob,
- >   textclob,
- >   "CaseSensitive",
- >   rawbytea,
- >   doc,
- >   uuid,
- >   clobjsonb,
- >   current_mood,
- >   t.id as id,
- >   c.name as currency_name,
- >   (select name from test.countries c where c.id = t.country_id) as country_name
- > FROM TEST.TABLE1 t left join test.currencies c
- >   on t.currency_id = c.id WHERE 1 = 1 and t.rowid between ? and ?
- > ```
+For example, we can get data from `TABLE1` by using the following query:
 
-
-> [!NOTE]
-> To speed up the chunk processing of partitioned table you can apply **fromTaskWhereClause** clause as it used above.
-> It allows to exclude excessive workload
+```
+ SELECT /* bublik */ /*+ no_index(T) */
+    "LEVEL",
+    create_at,
+    update_at,
+    gender,
+    byteablob,
+    textclob,
+    "CaseSensitive",
+    rawbytea,
+    doc,
+    uuid,
+    clobjsonb,
+    current_mood,
+    t.id as id,
+    c.name as currency_name,
+    (select name from test.countries c where c.id = t.country_id) as country_name
+  FROM TEST.TABLE1 t left join test.currencies c
+    on t.currency_id = c.id WHERE 1 = 1 and t.rowid between ? and ?
+```
 
 > [!NOTE]
-> If the target column type doesn't support by tool you can try to use Character  
-> by using declaration of column's name in **tryCharIfAny** array
+> To speed up the chunk processing of partitioned table, you can use **fromTaskWhereClause** clause as it used above.
+> It allows to exclude excessive workload.
+
+> [!NOTE]
+> If the target column type doesn't support by tool, you can try to use Character  
+> by using declaration of column's name in **tryCharIfAny** array.
  
-### Create Oracle ROWID chunks and Run
+### Create Oracle ROWID Chunks and Run
 
-Halt any changes to the movable tables in the source database (Oracle)<br>
+Halt any changes to the movable tables in the source database (Oracle).
 
-Chunks can be created automatically with parameter -k at startup
+You can create chunks automatically using `-k` parameter at startup:
 
 ```
 java \
@@ -274,11 +288,10 @@ java \
 ```
 
 > [!NOTE]
-> If the migration was interrupted due to any infrastructure issues you can resume the process without -k parameter.
-> In this case unprocessed chunks of data will be transfer 
+> If the migration was interrupted due to any infrastructure issues, you can resume the process without `-k` parameter—in this case
+unprocessed data chunks will be transferred. 
 
-
-You can prepare data chunks in Oracle manually by using the same user credentials specified in key `fromProperties` in `./cli/config/ora2pg.yaml`:
+You can prepare data chunks in Oracle manually by using the same user credentials specified in `fromProperties` key in `./cli/config/ora2pg.yaml`:
 
 ```
 exec dbms_parallel_execute.drop_task(task_name => 'TABLE1_TASK');
@@ -314,20 +327,19 @@ end;
 ```
 
 ## PostgreSQL To PostgreSQL
+
 ![PostgreSQL To PostgreSQL](/sql/PostgreSQLToPostgreSQL.png)
 
-The objective is to migrate table <strong>Source</strong> to table <strong>target</strong> from one PostgreSQL database to another. To simplify test case we're using same database
+The goal is to migrate <strong>Source</strong> table to <strong>Target</strong> table from one PostgreSQL database to another. To simplify test case we're using same database.
 
+### Environment
 
-### Prepare PostgreSQL To PostgreSQL environment
-
-All activities are reproducible in docker containers
+Use docker containers for all steps.
 
 ```
 git clone https://github.com/dimarudik/bublik.git
 cd bublik/
 ```
-
 
 ```
 mvn -f bublik/pom.xml clean install -DskipTests
@@ -355,16 +367,18 @@ docker run --name postgres \
         -c auto_explain.log_analyze=true
 ```
 
->  **WARNING**: SOURCE & TARGET tables will be created during postgre docker container startup
+> [!IMPORTANT]
+> `SOURCE` and `TARGET` tables will be created during postgre docker container startup.
 
-<ul><li>How to connect</li></ul>
+To connect, use a command:
 
 ```
 psql postgresql://test:test@localhost/postgres
 ```
 
+### Config File
 
-### Prepare PostgreSQL To PostgreSQL Config File
+<details><summary>yaml</summary>
 
 ```yaml
 threadCount: 10
@@ -379,8 +393,11 @@ toProperties:
   password: test
 ```
 
+</details>
 
-### Prepare PostgreSQL To PostgreSQL Mapping File
+### Mapping File
+
+<details><summary>json</summary>
 
 ```json
 [
@@ -417,20 +434,21 @@ toProperties:
   }
 ]
 ```
+</details>
 
 > [!IMPORTANT]
-> The case-sensitive or reserved words must be quoted with double quotation and backslashes
+> The case-sensitive or reserved words must be quoted with double quotation and backslashes.
 
 > [!NOTE]
-> **expressionToColumn** might be used for declaration of subquery for enrichment of data
+> **expressionToColumn** might be used for declaration of subquery for data enrichment.
 
 > [!NOTE]
-> If the target column type doesn't support by tool you can try to use Character  
-> by using declaration of column's name in **tryCharIfAny** array
+> If the target column type doesn't supported by tool, you can try to use Character  
+> by using declaration of column's name in **tryCharIfAny** array.
 
-### Create PostgreSQL CTID chunks
+### Create PostgreSQL CTID Chunks
 
-To begin the transferring of data from source to target Bublik prepares the CTID table at the source side
+To start the data transferring from source to target, Bublik prepares the CTID table at the source side:
 
 ```
 create table if not exists public.ctid_chunks (
@@ -443,7 +461,7 @@ create table if not exists public.ctid_chunks (
 ```
 
 > [!NOTE]
-> If you run bublik-cli with -k option, the CTID table will be created and fulfilled automatically.
+> If you run bublik-cli with `-k` option, the CTID table will be created and fulfilled automatically.
 
 ## PostgreSQL To Cassandra
 
@@ -451,7 +469,9 @@ create table if not exists public.ctid_chunks (
 
 [Java Datatype Mappings](https://documentation.softwareag.com/webmethods/adapters_estandards/Adapters/Apache_Cassandra/Apache_for_Cassandra_10-2/10-2-0_Apache_Cassandra_webhelp/index.html#page/cassandra-webhelp/co-cql_data_type_to_jdbc_data_type.html)
 
-### Prepare PostgreSQL To Cassandra environment
+### Environment
+
+1. Step 1:
 
 ```shell
 docker network create \
@@ -460,6 +480,8 @@ docker network create \
   --gateway=172.28.5.254 \
   bublik-network
 ```
+
+2. Step 2:
 
 ```shell
 docker run \
@@ -487,6 +509,8 @@ docker run \
         -c auto_explain.log_analyze=true
 ```
 
+3. Step 3:
+
 ```shell
 docker build ./dockerfiles/cs1 -t cs1 ; \
 docker build ./dockerfiles/cs2 -t cs2 ; \
@@ -495,6 +519,8 @@ docker build ./dockerfiles/cs4 -t cs4 ; \
 docker build ./dockerfiles/cs5 -t cs5 ; \
 docker build ./dockerfiles/cs6 -t cs6
 ```
+
+4. Step 4:
 
 ```shell
 docker run -d -h cs1 --ip 172.28.0.1 --name cs1 --network bublik-network -p 9042:9042 cs1 ; \
@@ -506,10 +532,10 @@ sleep 45; docker run -d -h cs6 --ip 172.28.0.6 --name cs6 --network bublik-netwo
 ```
 
 > [!IMPORTANT]
-> Wait until all nodes start. To check the status you can use nodetool as shown below.
-> If a node fails to start, remove node like: 
-> docker exec cs1 nodetool assassinate IP 
-> and re-create the broken container 
+> Wait until all nodes start. If a node fails to start, remove it using
+> `docker exec cs1 nodetool assassinate IP` command and re-create the broken container.
+
+To check the node status, you can use nodetool like this:
 
 ```shell
 docker exec cs1 nodetool status
@@ -517,7 +543,7 @@ docker exec cs1 nodetool status
 docker exec cs1 nodetool describecluster
 ```
 
-Adjust the ``batch_size_fail_threshold_in_kb`` parameter
+5. Adjust the ``batch_size_fail_threshold_in_kb`` parameter:
 
 ```shell
 docker exec -it cs1 nodetool sjk mx -ms -b org.apache.cassandra.db:type=StorageService -f BatchSizeFailureThreshold -v 1024 ; \
@@ -528,7 +554,7 @@ docker exec -it cs5 nodetool sjk mx -ms -b org.apache.cassandra.db:type=StorageS
 docker exec -it cs6 nodetool sjk mx -ms -b org.apache.cassandra.db:type=StorageService -f BatchSizeFailureThreshold -v 1024
 ```
 
-Prepare the Keyspace and tables
+6. Prepare the Keyspace and tables:
 
 ```shell
 cqlsh -u cassandra -p cassandra -f ./sql/data.cql
@@ -559,70 +585,79 @@ docker run -h cli --network bublik-network --name cli cli:latest
 
 ![Bublik](/sql/bublik.png)
 
-Bublik library might be used as a part of cli utility or as a part of service
+You can use Bublik library as a part of cli utility or as a part of service.
 
-Before usage build the jar and put it in a local maven repository
+Before usage, build the jar and put it in a local maven repository:
 
 ```shell
 cd ./bublik
 mvn clean install -DskipTests
 ```
 
-### Usage as a cli
+### As a Cli
 
-Build the cli
+1. Build the cli:
 
 ```shell
 cd ./cli
 mvn clean package -DskipTests
 ```
 
-Halt any changes to the movable tables in the source database.
+2. Halt any changes to the movable tables in the source database.
 
-Run the cli:
+3. Run the cli.
 
-- Oracle:
-  > ```
-  > java -jar ./target/bublik-cli-1.2.1.jar -c ./config/ora2pg.yaml -m ./config/ora2pg.json
-  > ```
-- PostgreSQL
-  > ```
-  > java -jar ./target/bublik-cli-1.2.1.jar -c ./config/pg2pg.yaml -m ./config/pg2pg.json
-  > ```
+    - Oracle:
+    
+    ```
+    java -jar ./target/bublik-cli-1.2.1.jar -c ./config/ora2pg.yaml -m ./config/ora2pg.json
+    ```
 
-- To prevent heap pressure, use `-Xmx16g`
-- Monitor the logs at `logs/app.log`
-- Track progress in Oracle:
-  > ```
-  > select status, count(*), round(100 / sum(count(*)) over() * count(*),2) pct 
-  >     from user_parallel_execute_chunks group by status;
-  > ```
-- Track progress in PostgreSQL:
-  > ```
-  > select status, count(*), round(100 / sum(count(*)) over() * count(*),2) pct 
-  >     from ctid_chunks group by status;
-  > ```
+    - PostgreSQL:
+    
+    ```
+    java -jar ./target/bublik-cli-1.2.1.jar -c ./config/pg2pg.yaml -m ./config/pg2pg.json
+    ```
 
-### Usage as a service
+   To prevent heap pressure, use `-Xmx16g`.
 
-Build the service
+   Monitor the logs at `logs/app.log`.
+
+4. Track the progress.
+
+    - In Oracle:
+
+    ```
+    select status, count(*), round(100 / sum(count(*)) over() * count(*),2) pct 
+        from user_parallel_execute_chunks group by status;
+    ```
+
+    - In PostgreSQL:
+
+    ```
+    select status, count(*), round(100 / sum(count(*)) over() * count(*),2) pct 
+        from ctid_chunks group by status;
+    ```
+
+### As a Service
+
+1. Build the service:
 
 ```shell
 cd ./service
 ./gradlew clean build -x test
 ```
 
-Halt any changes to the movable tables in the source database
+2. Halt any changes to the movable tables in the source database.
 
-Run the service:
+3. Run the service:
 
 ```
 java -jar ./build/libs/service-1.2.1.jar
 ```
 
-Consume the service:
+4. Consume the service:
 
 ```shell
 newman run ./postman/postman_collection.json
 ```
-
